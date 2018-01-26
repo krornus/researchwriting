@@ -1,0 +1,19 @@
+StackMonitor is a tool written in C and C++ which is used as a python module.  The module takes a x86, 64-bit ELF binary
+file as an argument, and functions as an iterator which represents a live-trace of the given binary. The data is given
+on a per-instruction basis, and gives the following generic information:
+
+    1) the base-pointer of the stack frame (BP),
+    2) the stack-pointer (FP),
+    3) the instruction pointer (IP),
+    4) and the disassembly of the instruction.
+
+Additionally, the iterator gives specific information pertaining to read and write operations on the stack. There are
+three possible memory operations that can occur. The three operations are write, read, and read2. Write and read are
+self-explanatory. Read2 is included as an operation when both operands of an instruction perform a read to the stack.
+The stack bounds are established by reading the [stack] entry from /proc/<pid>/maps. The address of each memory
+operation must be checked within PIN to see if it lies within the stack range, which does cause a drop in performance.
+
+The issue of performance is improved upon by using a binary debugger. The debugger is written in Rust, and allows for
+arbirary function calls within a given binary. This works by using ptrace system calls, and highjacking the instruction
+pointer. The advantage of using the debugger is that we can now test individual areas of a binary, and avoid
+instrumenting the entire binary.

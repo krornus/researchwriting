@@ -1,0 +1,64 @@
+Monitor output
+    Stack reads
+        Length of data read
+        Address of data read
+        Value of data read
+    Stack read2 - for if the instruction has two reads
+        Length of second data read
+        Address of second data read
+        Value of second data read
+    Stack writes
+        Length of data write
+        Address of data write
+        Value of data write
+    All data is in a python iterator
+        The data is yeilded as a dictionary
+            {
+                'read': {
+                    'addr': ..., 'length': ..., 'value': ...
+                },
+                'write': ...,
+                'read2':...
+            }
+        The data be placed in log file
+
+
+Final output
+    Address of possible vulnerability in ELF
+    Set user controlled registers
+        Taint analysis
+        Optional
+            Very useful
+Required input
+    x86_64 ELF file
+General structure
+    Main Idea
+        Monitor binary stack operations
+            R/W
+                Address, length, value
+        Fuzz function slices and monitor
+            Log data and monitor for vulnerable patterns
+            Machine learning
+    Operation
+        Intel PIN
+            Binary instrumentation for monitoring stack
+            Output data to python API
+        Ptrace
+            Tool written with rust
+            Function slicing
+                Add breakpoints to binary
+                    Call arbitrary function within binary once at breakpoint
+                        Set EIP
+                        Set EDI,ESI,EDX,ECX,r8,r9,XMM0-7,stack
+                            Arguments
+                        Set ESP
+                            Push return address (stack frame)
+                        Requires knowing function exits
+                            Reset all registers to original state on break at exit
+                                Due to caller reserved registers
+    Combination of tools
+        Ptrace makes syscall and forks new child
+            ptrace(PTRACE_TRACEME), execve(process)
+        Intel PIN has PIN_AddForkFunction(FPOINT_AFTER_IN_CHILD, ForkChild, 0)
+        So we must spawn a new process that calls fork
+            Follow the child of the fork
