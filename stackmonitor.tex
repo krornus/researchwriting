@@ -20,5 +20,6 @@ The key technical challenge of this tool is handling the massive amount of data.
 
 \section{Workflow}
 
+The workflow of the program is as follows. The program takes a binary file, which is sent to the stack monitor. The stack monitor spawns a binary debugger, which will call functions within the program itself. Each function run is monitored and the output is stored in a log. The debugger is capable of giving arguments to the given function, which can be randomized. Previously known fuzzing techniques can be applied to these functions, in an effort to trigger crashses.
 
 \end{document}
