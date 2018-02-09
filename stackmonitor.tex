@@ -1,0 +1,24 @@
+\documentclass{article}
+
+\title{Vulnerability Auditing Through Live Stack Tracing}
+\author{Spencer Powell}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Main Goal}
+
+\section{Stack Monitor}
+
+The stack monitor takes a binary executable of a program (currently only 64 bit x86 ELF's are supported). The monitor produces a sequence of stack read and write operations which can be accessed through python. It also produces an instruction trace of the program, and information about the location and size of the stack in memory per instruction. Currently this information is placed into a log, illustrated in Figure 1.1.
+
+\section{Key Technical Challenge}
+
+The key technical challenge of this tool is handling the massive amount of data. Per instruction, the log contains three addresses, and extra optional data for memory operations on the stack. This large influx of data is handled in two distinct methods. The first method is a binary debugger which attempts to extract and call a given function from a binary. This allows us to limit our scope of analysis to a single area, and create multiple logs based on differing inputs. The second method used to handle the large dataset is machine learning. Our goal is to discover patterns in stack behavior could indicate vulnerable logic in a binary. There is far too much data for this to be done manually, so machine learning was applied.
+
+\section{Workflow}
+
+
+\end{document}
