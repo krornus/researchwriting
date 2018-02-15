@@ -8,11 +8,9 @@
 
 \maketitle
 
-\section{Main Goal}
-
 \section{Stack Monitor}
 
-The stack monitor takes a binary executable of a program (currently only 64 bit x86 ELF's are supported). The monitor produces a sequence of stack read and write operations which can be accessed through python. It also produces an instruction trace of the program, and information about the location and size of the stack in memory per instruction. Currently this information is placed into a log, illustrated in Figure 1.1.
+The stack monitor is a tool that was written in order to create logs of stack activity for arbitrary programs. This means that the vulnerability auditing will be dynamic, instead of static. Dynamic execution has a few issues with it that must be dealt with. One of the biggest issues with dynamic execution traces is that of code coverage. Identifying a vulnerability requires that you first execute the vulnerable piece of code. We have elected to use fuzzing as a technique for code coverage, as it is well researched and there are many preexisting methods with which to explore a binary. The monitor takes a binary executable of a program (currently only 64 bit x86 ELF's are supported). The monitor produces a sequence of stack read and write operations which can be accessed through python. It also produces an instruction trace of the program, and information about the location and size of the stack in memory per instruction. Currently this information is placed into a log, illustrated in Figure 1.1. Because the data from the monitor is analyzed through machine learning, the data must be preprocessed. The addresses of the stack operations are made to be relative to the base pointer, and the stack frame is given in an overall size instead of both a stack and base pointer.
 
 \section{Key Technical Challenge}
 
@@ -20,6 +18,6 @@ The key technical challenge of this tool is handling the massive amount of data.
 
 \section{Workflow}
 
-The workflow of the program is as follows. The program takes a binary file, which is sent to the stack monitor. The stack monitor spawns a binary debugger, which will call functions within the program itself. Each function run is monitored and the output is stored in a log. The debugger is capable of giving arguments to the given function, which can be randomized. Previously known fuzzing techniques can be applied to these functions, in an effort to trigger crashses.
+The workflow of the program is as follows. The program takes a binary file, which is sent to the stack monitor. The stack monitor spawns a binary debugger, which will call functions within the program itself. Each function run is monitored and the output is stored in a log. The debugger is capable of giving arguments to the given function, which can be randomized. Previously known fuzzing techniques can be applied to these functions, in an effort to trigger crashes.
 
 \end{document}
