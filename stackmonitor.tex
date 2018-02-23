@@ -9,28 +9,63 @@ Powell} \date{\today}
 
 \maketitle
 
-\section{Stack Monitor}
-\par
-\ \ \ \ The stack monitor is a tool that was
-written in order to create logs of stack activity for arbitrary programs,
-implying the vulnerability auditing will be dynamic, instead of static. Dynamic
+\section {Overview}
+
+Here give the overall workflow of the whole system, including
+
+Make a workflow figure
+
+The workflow of the program is as follows. The program takes a binary file,
+which is sent to the stack monitor. The stack monitor spawns a binary debugger,
+which will call functions within the program itself. Each function run is
+monitored and the output is stored in a log. The debugger is capable of giving
+arguments to the given function, which can be randomized. Previously known
+fuzzing techniques can be applied to these functions, in an effort to trigger
+crashes.
+
+
+Path exploring
+Stack monitor
+vulnerability detector
+
+
+\section {Path Exploring}
+Dynamic
 execution has a few issues with it that must be dealt with. One of the biggest
 issues with dynamic execution traces is that of code coverage. Identifying a
 vulnerability requires that you first execute the vulnerable piece of code. We
 have elected to use fuzzing as a technique for code coverage, as it is well
 researched and there are many pre-existing methods with which to explore a
-binary. \par
-    The monitor takes a binary executable of a program (currently only
-64 bit x86 ELF's are supported), and any command line arguments. The monitor
+binary. 
+
+
+
+\section{The Stack Monitor}
+
+% what is the purpose. What input does it take. What output is produced. 
+Our stack monitor serves to monitor the execution of an arbitrary program and
+then creates a log of all the stack activities, which is later analyzed for vulnerability detection.
+It takes as input a binary executable of a program (currently only
+64 bit x86 ELF's are supported), and any command line arguments. 
+The monitor
 produces a sequence of stack read and write operations which can be accessed
 through python. It also produces an instruction trace of the program, and
 information about the location and size of the stack in memory per instruction.
-The monitor works by making use of binary instrumentation.  Binary
-instrumentation works by injecting compiled code into the program. The code for
-our project is injected on a per instruction basis into the program.  This can
-greatly increase the runtime of code, due to instruction count being multiplied
-by a large factor. Currently the information created by the stack monitor is
-placed into a log, illustrated in Figure 1.1.  Because the data from the monitor
+
+%What is the overall strategy
+The monitor works by making use of binary instrumentation.  
+Binary
+instrumentation works by injecting compiled code into the program. 
+
+The instrumentations are dynamically injected after each binary instruction of the program, to ??? what are the instrumentation code? what do they do? where do they save the stack info? What info is saved?
+
+This can greatly increase the runtime of code, due to instruction count being multiplied
+by a large factor. 
+Currently the information created by the stack monitor is
+placed into a log file, illustrated in Figure 1.1.  
+
+\section {The Vunerability Detection}
+The data from the monitor
 is analyzed through machine learning, the data must be preprocessed.  The
 addresses of the stack operations are made to be relative to the base pointer,
 and the stack frame is given in an overall size instead of both a stack and base
@@ -51,15 +86,5 @@ create multiple logs based on differing inputs. The second method used to handle
 the large dataset is machine learning.  Our goal is to discover patterns in
 stack behavior could indicate vulnerable logic in a binary.  There is far too
 much data for this to be done manually, so machine learning was applied.
-
-\section{Workflow}
-
-The workflow of the program is as follows. The program takes a binary file,
-which is sent to the stack monitor. The stack monitor spawns a binary debugger,
-which will call functions within the program itself. Each function run is
-monitored and the output is stored in a log. The debugger is capable of giving
-arguments to the given function, which can be randomized. Previously known
-fuzzing techniques can be applied to these functions, in an effort to trigger
-crashes.
 
 \end{document}
