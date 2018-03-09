@@ -14,105 +14,104 @@ Powell} \date{\today}
 %Make a workflow figure clarify relationship between debugger and monitor which
 %preceeds which?
 
-TODO: first make the graph; then we will explain it.
+%TODO: first make the graph; then we will explain it.
 
-The overall workflow of our vulnerability detection toolkit is shown in Figure\ref{fig-workflow} 
-and includes ?? main components: component 1, which does ??? ; component  2, which does ???, etc.
-the binary debugger, which takes the executable code of a user program,...
-The debugger will call functions within
-the program itself, in an effort to lessen the amount of code executed and
-increase the path coverage. The debugger is capable of giving arguments to the
-given function, which can be randomized. Previously known fuzzing techniques can
-be applied to these functions, in an effort to trigger crashes. Fuzzing is a
-method of crafting random inputs for a program in an effort to explore all paths
-within a given binary or function. Exploring all paths through a givent binary
-is an important step in this process because a given vulnerability in a binary
-may not be located within a commonly executed logic path. The stack monitor
-maintains a log of stack activity during each execution, which is written to a
-file. Each time the fuzzer provides a different input to the program, a new log
-file is produced and saved. This collection of files is then sent to the
-vulnerability detector. The detector uses machine learning to recognize
-vulnerable patterns in stack activity, and tags potentially vulnerable sections
-of machine code.
+The overall workflow of our vulnerability detection toolkit is shown in
+%Figure\ref{fig-workflow}
+Figure 1.1 and includes four main components: the stack monitor, which monitors
+and logs stack activiy, the debugger, which calls functions within a target
+program, a fuzzer, which supplies constructed random inputs to the program, and
+a pattern detector, which uses machine learning to analyze the newly created
+stack monitor logs and detect vulnerable code patterns. After the stack monitor
+invokes the debugger, the debugger will call functions within the program
+itself, in an effort to lessen the amount of code executed and increase the
+path coverage. The debugger is capable of giving arguments to the given
+function, which can be randomized by fuzzing. Fuzzing is a method of crafting
+random inputs for a program in an effort to explore all paths within a given
+binary or function. Previously known fuzzing techniques can be applied to these
+functions, in an effort to trigger crashes. Exploring all paths through a
+givent binary is an important step in this process because a given
+vulnerability in a binary may not be located within a commonly executed logic
+path. The stack monitor maintains a log of stack activity during each
+execution, which is written to a file. Each time the fuzzer provides a
+different input to the program, a new log file is produced and saved. This
+collection of files is then sent to the vulnerability detector. The detector
+uses machine learning to recognize vulnerable patterns in stack activity, and
+tags potentially vulnerable sections of machine code.
 
 \section{The Stack Monitor}
 
-    Our stack monitor serves to monitor the execution of an arbitrary program and
+Our stack monitor serves to monitor the execution of an arbitrary program and
 then creates a log of all the stack activities, which is later analyzed for
-vulnerability detection.  It takes as input a binary executable of a program
-(currently only 64 bit x86 ELF's are supported), and any command line arguments.
-The monitor dynamically instruments the user executable to log down the values of 
-the runtime stack pointer (SP), the base pointer for the stack (BP), and the instruction pointer
-(IP) before each instruction is executed.
-If the instruction reads or writes to memory, instrumentation is inserted to check
-whether the targeted memory is within the runtime stack, and if yes, the memory operation is logged.
-All the logged information is sent to the stack monitor from the instrumented binary executable
-using a client-server model for interprocess-communication. 
-An example of the logged information for ??? is illustrated in Figure~\ref{fig-logfile}.
-The stack monitor can be configured to either output all the logs into an external file,
-or in an internal data structure that can be accessed through python. 
+vulnerability detection. It takes as input a binary executable of a program
+(currently only 64 bit x86 ELF's are supported). The monitor dynamically
+instruments the user executable to log down the values of the runtime stack
+pointer (SP), the base pointer for the stack (BP), and the instruction pointer
+(IP) before each instruction is executed. If the instruction reads or writes to
+memory, instrumentation is inserted to check whether the targeted memory is
+within the runtime stack, and if yes, the memory operation is logged. All the
+logged information is sent to the stack monitor from the instrumented binary
+executable using a client-server model for interprocess-communication.
+%An example of the logged information for ??? is illustrated in
+%Figure~\ref{fig-logfile}.
+The stack monitor can be configured to either output all the logs into an
+external file, or in an internal data structure that can be accessed through
+python.
 
 % TODO: create figure for stack monitor
 
 \section{The Binary Debugger}
 
-The stack monitor can incur significant runtime overhead because the per-instruction 
-instrumentation and runtime checking.
-The binary debugger aims to reduce this overhead by ???
+The stack monitor can incur significant runtime overhead because the
+per-instruction instrumentation and runtime checking. The binary debugger aims
+to reduce this overhead by only calling specific functions within the program.
+This is important, because the next stage of the process, path exploration,
+requires multiple runs of a given program. When the program completes, the
+stack monitor outputs the log as usual, but only for the sections which are
+executed by the debugger.
 
-% better organize into application,input,output
-The binary debugger was created in order to reduce the number of instructions
-which are executed while running a binary.
-% TODO: Make sure this is the actual process we use?
-The debugger is spawned by the stack monitor which in turn calls specified
-functions. Because we are only calling individual functions instead of the
-entire program, the execution cost is greatly reduced. This is important,
-because the next stage of the process, path exploration, requires multiple runs
-of a given program. When the program completes, the stack monitor outputs the
-log as usual, but only for the sections which are executed by the debugger.
-
-% revise describe use of debugger in application, input, produce
-% non-relevant technical details?
-The binary debugger works by making use of the ptrace system call. Ptrace grants
-a parent application the ability to monitor and edit the memory of an active
-child process. The debugger can set breakpoints in a child, and call arbitrary
-functions that exist within the child. The function calls can be constructed
-with arguments, but no initialization is done to global data.  This can be a
-potential issue for processes which rely on global variables or preallocated
-memory. Fake allocations can be performed by manually allocating space on the
-stack before calling, but currently the only fix for global variables is to
-partially execute sections of the program before executing the desired code.
+% revise describe use of debugger in application, input, produce non-relevant
+% technical details?
+too technical? ->
+The binary debugger works by making use of the ptrace system call. Ptrace
+grants a parent application the ability to monitor and edit the memory of an
+active child process. The debugger can set breakpoints in a child, and call
+arbitrary functions that exist within the child. The function calls can be
+constructed with arguments, but no initialization is done to global data. This
+can be a potential issue for processes which rely on global variables or
+preallocated memory. Fake allocations can be performed by manually allocating
+space on the stack before calling, but currently the only fix for global
+variables is to partially execute sections of the program before executing the
+desired code.
 
 
-\section {Path Exploring}
-Dynamic execution has a few issues with it that must be dealt with. One of the
-biggest issues with dynamic execution traces is that of code coverage.
-Identifying a vulnerability requires that you first execute the vulnerable piece
-of code. We have elected to use fuzzing as a technique for code coverage, as it
-is well researched and there are many pre-existing methods with which to explore
-a binary.
+\section {Path Exploring} Dynamic execution has a few issues with it that must
+be dealt with. One of the biggest issues with dynamic execution traces is that
+of code coverage. Identifying a vulnerability requires that you first execute
+the vulnerable piece of code. We have elected to use fuzzing as a technique for
+code coverage, as it is well researched and there are many pre-existing methods
+with which to explore a binary.
 
-\section {The Vunerability Detection}
-The data from the monitor is analyzed through machine learning, the data must be
-preprocessed.  The addresses of the stack operations are made to be relative to
-the base pointer, and the stack frame is given in an overall size instead of
-both a stack and base pointer.
+\section {The Vunerability Detection} The data from the monitor is analyzed
+through machine learning, the data must be preprocessed. The addresses of the
+stack operations are made to be relative to the base pointer, and the stack
+frame is given in an overall size instead of both a stack and base pointer.
 
 \section{Key Technical Challenge}
 
-The key technical challenge of this tool is handling the massive amount of data.
-Per instruction, the log contains three addresses, and extra optional data for
-memory operations on the stack. This pressents two major issues. The first issue
-is the massively increased runtime of the target binary which is required in
-order to generate the information, and the second issue is comprehending and
-manipulating the massive amount of data which is created.
+The key technical challenge of this tool is handling the massive amount of
+data. Per instruction, the log contains three addresses, and extra optional
+data for memory operations on the stack. This pressents two major issues. The
+first issue is the massively increased runtime of the target binary which is
+required in order to generate the information, and the second issue is
+comprehending and manipulating the massive amount of data which is created.
 
-The large influx of data is handled in two distinct methods. The first method is
-a binary debugger which attempts to extract and call a given function from a
+The large influx of data is handled in two distinct methods. The first method
+is a binary debugger which attempts to extract and call a given function from a
 binary. This allows us to limit our scope of analysis to a single area, and
-create multiple logs based on differing inputs. The second method used to handle
-the large dataset is machine learning.  Our goal is to discover patterns in
-stack behavior could indicate vulnerable logic in a binary.  There is far too
+create multiple logs based on differing inputs. The second method used to
+handle the large dataset is machine learning. Our goal is to discover patterns
+in stack behavior could indicate vulnerable logic in a binary. There is far too
 much data for this to be done manually, so machine learning was applied.
 
 \end{document}
