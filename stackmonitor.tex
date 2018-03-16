@@ -1,6 +1,7 @@
 \setlength{\parindent}{10ex}
 
 \documentclass{article}
+\usepackage{graphicx}
 
 \title{Vulnerability Auditing Through Live Stack Tracing} \author{Spencer
 Powell} \date{\today}
@@ -39,6 +40,17 @@ collection of files is then sent to the vulnerability detector. The detector
 uses machine learning to recognize vulnerable patterns in stack activity, and
 tags potentially vulnerable sections of machine code.
 
+\begin{figure}
+\begin{center}
+%\vspace{-0.3in}
+\includegraphics[height=4in]{workflow.png}
+\end{center}
+%\vspace*{-0.3in}
+\caption{The Overall Workflow}
+%\vspace{-0.4in}
+\label{fig-workflow}
+\end{figure}
+
 \section{The Stack Monitor}
 
 Our stack monitor serves to monitor the execution of an arbitrary program and
@@ -62,21 +74,17 @@ python.
 
 \section{The Binary Debugger}
 
-The stack monitor can incur significant runtime overhead because the
-per-instruction instrumentation and runtime checking. The binary debugger aims
-to reduce this overhead by only calling specific functions within the program.
-This is important, because the next stage of the process, path exploration,
-requires multiple runs of a given program. When the program completes, the
-stack monitor outputs the log as usual, but only for the sections which are
-executed by the debugger.
+The binary debugger provides an programming interface for the developer to invoke the stack monitor 
+to track any selected regions of code.  TODO: what is the interface (API)? make a figure and reference the figure. Then try to explain the logisitics of the API.
 
-% revise describe use of debugger in application, input, produce non-relevant
-% technical details?
-too technical? ->
-The binary debugger works by making use of the ptrace system call. Ptrace
-grants a parent application the ability to monitor and edit the memory of an
-active child process. The debugger can set breakpoints in a child, and call
-arbitrary functions that exist within the child. The function calls can be
+
+TODO: provide an example of using the API of debugger in the fuzzer. Also the figure will be used to explain the fuzzer. 
+
+
+The programming interface in Figure?? is implemented by making system call to TODO: the specific ptrace call (with interface), TODO: explain how the ptrace interface work. In particular, the debugger invokes ptrace with the TODO {what requests} to allow the user to monitor and edit the memory of any child process, 
+to set breakpoints in a child, and to call any function in the child. 
+
+The function calls can be
 constructed with arguments, but no initialization is done to global data. This
 can be a potential issue for processes which rely on global variables or
 preallocated memory. Fake allocations can be performed by manually allocating
