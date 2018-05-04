@@ -76,17 +76,17 @@ explain the logisitics of the API.
     \begin{tabular}{|l|l|}
     \hline
     \bf Function & \bf Purpose \\ \hline
-    new(path, argv) & Creates a new debugger \\ \hline
-    run(self) & Run the debugged program \\ \hline
-    breakpoint(self, address) & Add a breakpoint at address \\ \hline
-    cont(self) & Continue from current breakpoint \\ \hline
-    phantom\_call(self, addr, args, exits) & Construct and call function at addr \\ \hline
-    register\_action(self, func) & Register global break action(s) \\ \hline
-    register\_action\_at(self, address, func) & Register break action(s) at address \\ \hline
-    breakpoint\_at(self, address) & Get reference to breakpoint \\ \hline
-    breakpoint\_at\_mut(self, address) & Get mutable reference to breakpoint \\ \hline
-    current\_breakpoint(self) & Get reference to current breakpoint \\ \hline
-    current\_breakpoint\_mut(self) & Get mutable reference to current breakpoint \\ \hline
+    Debugger::new(path, argv) & Creates and return a new debugger instance \\ \hline
+    debugger.run() & Run the debugged program \\ \hline
+    debugger.breakpoint(address) & Add a breakpoint at address \\ \hline
+    debugger.cont() & Continue from current breakpoint \\ \hline
+    debugger.phantom\_call(addr, args, exits) & Construct and call function at addr \\ \hline
+    debugger.register\_action(func) & Register global break action(s) \\ \hline
+    debugger.register\_action\_at(address, func) & Register break action(s) at address \\ \hline
+    debugger.breakpoint\_at(address) & Get reference to breakpoint \\ \hline
+    debugger.breakpoint\_at\_mut(address) & Get mutable reference to breakpoint \\ \hline
+    debugger.current\_breakpoint() & Get reference to current breakpoint \\ \hline
+    debugger.current\_breakpoint\_mut() & Get mutable reference to current breakpoint \\ \hline
     \end{tabular}
 \end{center}
 
@@ -111,7 +111,97 @@ has been established, they must retrieve it from the debugger with the breakpoin
 a mutable reference to the breakpoint. The sister function breakpoint\_at() function operates similarly, but returns a
 read-only reference to the breakpoint.
 
+An example program which debugs a test program is shown here:
+\begin{verbatim}
+  1 fn main() {
+  2
+  3     let file = "./bin/test"
+  4         .to_string();
+  5
+  6     /* create debugger for file, ran with arguments [file] */
+  7     let mut dbg = Debugger::new(file.clone(), vec![file])
+  8         .expect("Could not start binary");
+  9
+ 10     /* set log level to show commands and breakpoints */
+ 11     dbg.log = LogLevel::Commands | LogLevel::Breakpoints;
+ 12
+ 13     let main_addr = 0x4005d0;
+ 14     let foo_addr = 0x400592;
+ 15     let foo_exit = 0x4005a6;
+ 16
+ 17     /* add a breakpoint in main */
+ 18     dbg.breakpoint(main_addr)
+ 19         .expect("failed to set breakpoint")
+ 20         .name("main::entry");
+ 21
+ 22     /* run the debugged process */
+ 23     dbg.run()
+ 24         .expect("couldnt run");
+ 25
+ 26     /* we are now at the first and only breakpoint */
+ 27     /* get the address of the string used in the function "foo" */
+ 28     dbg.phantom_call(foo_addr, vec![], vec![foo_exit])
+ 29         .expect("failed to execute phantom call");
+ 30
+ 31     /* continue */
+ 32     cont!(dbg);
+ 33
+ 34     /* print output */
+ 35     if let Some(o) = dbg.child.stdout() {
+ 36         println!("{}", o);
+ 37     }
+ 38 }
+\end{verbatim}
 
+The programming interface in Figure?? is implemented by making system calls to ptrace. The ptrace system call allows a
+process to inspect and manipulate a child process's memory and execution. The arguments for ptrace can be seen in figure
+x.x
+
+\begin{center}
+    \caption{ptrace(request, pid, addr, data) usage} \\
+    \begin{tabular}{|l|l|}
+    \hline
+    \bf Argument & \bf Purpose \\ \hline
+    request & The type of ptrace request, see figure x.x for options \\ \hline
+    pid & The process ID of the target binary \\ \hline
+    addr & Optional address used for certain values of \bf{request} \\ \hline
+    data & Optional data used for certain values of \bf{request} \\ \hline
+    \end{tabular}
+\end{center}
+
+The requests used by the debugger are shown below, along with their meanings
+
+\begin{center}
+    \caption{ptrace(request, pid, addr, data) request types} \\
+    \begin{tabular}{|l|l|}
+    \hline
+    PTRACE\_TRACEME    & Allow process to be trace \\ \hline
+    PTRACE\_PEEKTEXT   & Read a WORD size of data at addr \\ \hline
+    PTRACE\_POKETEXT   & Write data as a WORD size to addr \\ \hline
+    PTRACE\_GETREGS    & Get values for the registers in current process \\ \hline
+    PTRACE\_SETREGS    & Set values for the registers in current process \\ \hline
+    PTRACE\_CONT       & Restart the process, with optional signal in data \\ \hline
+    PTRACE\_SINGLESTEP & Restart the process and halt after single instruction executes \\ \hline
+    PTRACE\_ATTACH     & Attach to process with pid \\ \hline
+    PTRACE\_DETACH     & Detach from process and continue its execution \\ \hline
+    \end{tabular}
+\end{center}
+
+The debugger spawns a child tracee process by first invoking the fork system call. The child process which results from
+the fork call then performs an initial ptrace system call, using the PTRACE\_TRACEME request. This enables the child
+process to be traced by a parent tracer process. Breakpoints are set using algorithm shown in % figure xxx
+
+TODO: the specific ptrace call (with interface), TODO: explain how the ptrace interface work. In particular, the
+debugger invokes ptrace with the TODO {what requests} to allow the user to monitor and edit the memory of any child
+process, to set breakpoints in a child, and to call any function in the child.
+
+%TODO move to potential issues area
+The function calls can be constructed with arguments, but no initialization is done to global data. This can be a
+potential issue for processes which rely on global variables or preallocated memory. Fake allocations can be performed
+by manually allocating space on the stack before calling, but currently the only fix for global variables is to
+partially execute sections of the program before executing the desired code.
+
+Setting breakpoints in a given process is performed by using the following algorithms
 \begin{algorithm}[H]
     \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
     \Input{
@@ -134,6 +224,7 @@ read-only reference to the breakpoint.
     }
     \caption{Adding a breakpoint to a target binary}
 \end{algorithm}
+
 \begin{algorithm}[H]
     \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
     \Input{
@@ -146,40 +237,6 @@ read-only reference to the breakpoint.
     }
     \caption{Continuing from a breakpoint in the target binary}
 \end{algorithm}
-
-TODO: provide an example of using the API of debugger in the fuzzer. Also the figure will be used to explain the fuzzer.
-% do this before ptrace
-
-The programming interface in Figure?? is implemented by making system calls to ptrace. The ptrace system call allows a
-process to inspect and manipulate a child process's memory and execution. The arguments for ptrace can be seen in figure
-x.x
-
-\begin{center}
-    \caption{ptrace(request, pid, addr, data) usage} \\
-    \begin{tabular}{|l|l|}
-    \hline
-    \bf Argument & \bf Purpose \\ \hline
-    request & The type of ptrace request, see figure x.x for options \\ \hline
-    pid & The process ID of the target binary \\ \hline
-    addr & Optional address used for certain values of \bf{request} \\ \hline
-    data & Optional data used for certain values of \bf{request} \\ \hline
-    \end{tabular}
-\end{center}
-
-The debugger spawns a child tracee process by first invoking the fork system call. The child process which results from
-the fork call then performs an initial ptrace system call, using the PTRACE\_TRACEME request. This enables the child
-process to be traced by a parent tracer process. Breakpoints are set using algorithm shown in % figure xxx
-
-TODO: the specific ptrace call (with interface), TODO: explain how the ptrace interface work. In particular, the
-debugger invokes ptrace with the TODO {what requests} to allow the user to monitor and edit the memory of any child
-process, to set breakpoints in a child, and to call any function in the child.
-
-%TODO move to potential issues area
-The function calls can be constructed with arguments, but no initialization is done to global data. This can be a
-potential issue for processes which rely on global variables or preallocated memory. Fake allocations can be performed
-by manually allocating space on the stack before calling, but currently the only fix for global variables is to
-partially execute sections of the program before executing the desired code.
-
 
 \section {Path Exploring} Dynamic execution has a few issues with it that must be dealt with. One of the biggest issues
 with dynamic execution traces is that of code coverage. Identifying a vulnerability requires that you first execute the
